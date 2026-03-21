@@ -24,9 +24,7 @@
 
 ## Problem Statement
 
-Branch-wise Analysis and Prediction of Student Placement Using Academic and Skill Factors.
-
-The objective of this study is to predict whether a college student will be placed or not while also analyzing placement patterns across different academic branches. By examining factors such as CGPA, communication skills, projects, internship experience, and academic branch, the study aims to develop a predictive model to estimate placement chances and identify branches with higher placement success rates.
+The objective of this study is to predict whether a college student will be placed or not, while simultaneously analyzing placement patterns across different academic branches. By examining factors such as CGPA, communication skills, projects completed, internship experience, and academic branch, this project develops a predictive model to estimate placement probability and identifies branches with higher placement success rates.
 
 ---
 
@@ -58,10 +56,10 @@ The objective of this study is to predict whether a college student will be plac
 | IQ | Student IQ score |
 | Prev_Sem_Result | Previous semester result |
 | CGPA | Cumulative Grade Point Average |
-| Academic_Performance | Academic performance score (0-10) |
-| Internship_Experience | Whether student had internship (Yes/No) |
-| Extra_Curricular_Score | Score for extracurricular activities (0-10) |
-| Communication_Skills | Communication skills rating (0-10) |
+| Academic_Performance | Academic performance score (0–10) |
+| Internship_Experience | Whether the student had internship experience (Yes/No) |
+| Extra_Curricular_Score | Score for extracurricular activities (0–10) |
+| Communication_Skills | Communication skills rating (0–10) |
 | Projects_Completed | Number of projects completed |
 | Placement | Target — whether student was placed |
 | college_name | Name of the college |
@@ -74,14 +72,14 @@ The objective of this study is to predict whether a college student will be plac
 | Column | Type | Description |
 |---|---|---|
 | IQ | Float | Student IQ score, cleaned and clipped to [50, 200] |
-| Academic_Performance | Float | Academic performance score (0-10) |
+| Academic_Performance | Float | Academic performance score (0–10) |
 | Internship_Experience | Integer | Binary — 1 = Yes, 0 = No |
-| Extra_Curricular_Score | Float | Extracurricular score (0-10) |
-| Communication_Skills | Float | Communication rating (0-10) |
+| Extra_Curricular_Score | Float | Extracurricular score (0–10) |
+| Communication_Skills | Float | Communication rating (0–10) |
 | Projects_Completed | Integer | Count of projects completed |
 | branch | String / Encoded | Standardized branch name or encoded integer |
 | KT | Integer | Number of backlogs |
-| CGPA_Final | Float | Reconstructed or original CGPA (0-10) |
+| CGPA_Final | Float | Reconstructed or original CGPA (0–10) |
 | Placement | Integer | Target variable — 1 = Placed, 0 = Not Placed |
 
 ---
@@ -89,11 +87,14 @@ The objective of this study is to predict whether a college student will be plac
 ## Project Structure
 
 ```
-placement-prediction/
+Placement-Prediction/
 │
 ├── Raw_College_student_placement_dataset.csv   # Original raw dataset
-├── cleaned_placement_data.csv                  # Final cleaned output
-├── data.ipynb                                  # Main analysis notebook
+├── cleaned_placement_data.csv                  # Cleaned and imputed dataset
+├── scaled_placement_data.csv                   # Feature-scaled dataset for modelling
+├── data_modified.ipynb                         # Data cleaning and preprocessing pipeline
+├── eda.ipynb                                   # Exploratory Data Analysis
+├── placement_model.ipynb                       # Model training and evaluation
 └── README.md                                   # Project documentation
 ```
 
@@ -112,46 +113,51 @@ The raw dataset contained severely corrupted values far beyond standard missing 
 | sem_1 to sem_8 | Text entries ("absent", "fail/pass", "zero.zero"), values outside [0, 10] |
 | Internship_Experience | Mixed case and spacing ("Yes", "y", "YES", "Ye s"), HTML-injected strings |
 | Placement | Inconsistent labels ("placed", "Placde", "NO", "N", "YES", empty string) |
-| branch | Abbreviations ("C.S.E", "cse"), typos ("Compter Scince"), pipe-delimited junk ("cs|1t"), full HTML garbage strings |
+| branch | Abbreviations ("C.S.E", "cse"), typos ("Compter Scince"), pipe-delimited junk |
 
 ### Cleaning Functions Applied
 
 **clean_cgpa(value)**
-- Converts value to lowercase string
-- Returns NaN for known junk tokens: "zero.zero", "ten_thousand", "?", "nan", "none", ""
-- Returns NaN for values ending with "k" (salary-format entries)
-- Returns NaN for values outside range [0, 10] or negative values
 
-Applied to: CGPA, Extra_Curricular_Score, Communication_Skills, Academic_Performance, Projects_Completed, KT
+- Converts value to lowercase string.
+- Returns NaN for known junk tokens: "zero.zero", "ten_thousand", "?", "nan", "none", "".
+- Returns NaN for values ending with "k" (salary-format entries).
+- Returns NaN for values outside the range [0, 10] or negative values.
+
+Applied to: CGPA, Extra_Curricular_Score, Communication_Skills, Academic_Performance, Projects_Completed, KT.
 
 **clean_cgpa_value(val)**
-- Extended version with explicit text mapping (e.g., "zero.zero" → 0.0)
-- Clips result to [0, 10] range
-- Returns NaN for non-parseable strings
 
-Applied to: sem_1_result through sem_8_result
+- Extended version with explicit text mapping (e.g., "zero.zero" → 0.0).
+- Clips result to [0, 10] range.
+- Returns NaN for non-parseable strings.
+
+Applied to: sem_1_result through sem_8_result.
 
 **clean_iq(value)**
-- Converts to lowercase string
-- Returns NaN for text tokens and "k"-suffixed values
-- Converts to float, then clips to valid IQ range [50, 200]
-- Rejects infinity-like scientific notation values
 
-Applied to: IQ
+- Converts to lowercase string.
+- Returns NaN for text tokens and "k"-suffixed values.
+- Converts to float, then clips to valid IQ range [50, 200].
+- Rejects infinity-like scientific notation values.
 
-**clean__(value)**
-- Standardizes binary Yes/No columns
-- Maps any string starting with "y" or containing "yes" → 1
-- Maps any string starting with "n", containing "no", or equal to "0" → 0
-- Maps strings starting with "p" (e.g., "placed", "Placde") → 1
-- Returns NaN for all unrecognized values (HTML junk, random strings)
+Applied to: IQ.
 
-Applied to: Internship_Experience, Placement
+**clean_binary(value)**
+
+- Standardizes binary Yes/No columns.
+- Maps any string starting with "y" or containing "yes" → 1.
+- Maps any string starting with "n", containing "no", or equal to "0" → 0.
+- Maps strings starting with "p" (e.g., "placed", "Placde") → 1.
+- Returns NaN for all unrecognized values (HTML junk, random strings).
+
+Applied to: Internship_Experience, Placement.
 
 **clean_branch(value)**
-- Keyword-based categorization using lowercase string matching
-- Maps to five standardized branch names
-- Returns NaN for unrecognized or junk values
+
+- Keyword-based categorization using lowercase string matching.
+- Maps to five standardized branch names.
+- Returns NaN for unrecognized or junk values.
 
 | Keywords Detected | Standardized Label |
 |---|---|
@@ -163,7 +169,7 @@ Applied to: Internship_Experience, Placement
 
 ### Target Column Handling
 
-Rows where `Placement` was NaN after the original read were dropped before any further processing, as the target variable is required for supervised learning.
+Rows where `Placement` was NaN after the initial read were dropped before any further processing, as the target variable is mandatory for supervised learning.
 
 ---
 
@@ -171,7 +177,7 @@ Rows where `Placement` was NaN after the original read were dropped before any f
 
 ### CGPA Reconstruction
 
-A significant portion of the CGPA column was missing (13.26%). However, many of these students had partial or complete semester result data available. A row-wise mean was computed across all 8 semester columns to derive a calculated average.
+A significant portion of the CGPA column was missing (13.26%). However, many of these students had partial or complete semester result data available. A row-wise mean was computed across all eight semester columns to derive a proxy CGPA.
 
 ```
 CGPA_Final = CGPA (if present) else mean(sem_1 to sem_8)
@@ -182,7 +188,7 @@ CGPA_Final = CGPA (if present) else mean(sem_1 to sem_8)
 | CGPA missing rate | 13.26% | 0.23% |
 | Coverage | 86.74% | 99.77% |
 
-This domain-aware reconstruction significantly reduced the missingness in the most important continuous predictor without introducing external assumptions.
+This domain-aware reconstruction significantly reduced missingness in the most important continuous predictor without introducing external assumptions.
 
 ---
 
@@ -207,25 +213,25 @@ After cleaning, the remaining missing rates were as follows:
 
 MICE was selected over simpler alternatives (mean, median, mode) for the following reasons:
 
-- Mean/median imputation on columns with 50-60% missingness would collapse the variance of those features, introducing severe bias into the dataset.
+- Mean/median imputation on columns with 50–60% missingness would collapse the variance of those features, introducing severe bias.
 - MICE treats each column with missing values as a dependent variable and regresses it against all other columns iteratively, producing statistically consistent estimates.
-- The iterative nature (max_iter=10) ensures convergence across all columns simultaneously.
+- The iterative process (max_iter=10) ensures convergence across all columns simultaneously.
 
-**Estimator Used:** BayesianRidge (sklearn default for IterativeImputer)
+**Estimator Used:** BayesianRidge (scikit-learn default for IterativeImputer)
 
 BayesianRidge was preferred over RandomForest for the following reasons:
 
 - Features in this dataset (scores, IQ, CGPA) are approximately linearly correlated.
-- RandomForest with n_estimators=100 would provide only marginal accuracy gain while increasing computation time by a factor of 10 to 30 on a 40,000-row dataset.
+- RandomForest with n_estimators=100 would provide only marginal accuracy gains while increasing computation time by a factor of 10 to 30 on a 40,000-row dataset.
 - BayesianRidge is robust, fast, and well-suited for continuous features with linear relationships.
 
 **Configuration:**
 
 ```python
 IterativeImputer(
-    max_iter    = 10,
-    random_state= 42,
-    min_value   = 0
+    max_iter     = 10,
+    random_state = 42,
+    min_value    = 0
 )
 ```
 
@@ -260,7 +266,7 @@ The branch column was encoded using LabelEncoder after standardization. The fina
 | Information Technology | 3 |
 | Mechanical Engineering | 4 |
 
-For machine learning models, encoding choice should follow these guidelines:
+Encoding choice for downstream modelling should follow these guidelines:
 
 | Model Type | Recommended Encoding |
 |---|---|
@@ -269,7 +275,7 @@ For machine learning models, encoding choice should follow these guidelines:
 
 ### Binary Columns
 
-Both Internship_Experience and Placement were standardized to integer binary values: 1 (Yes / Placed) and 0 (No / Not Placed).
+Both `Internship_Experience` and `Placement` were standardized to integer binary values: 1 (Yes / Placed) and 0 (No / Not Placed).
 
 ---
 
@@ -281,7 +287,6 @@ Both Internship_Experience and Placement were standardized to integer binary val
 | Total columns | 10 |
 | Null values remaining | 0 |
 | Target variable | Placement |
-| Target distribution | Available via value_counts() |
 | Output file | cleaned_placement_data.csv |
 
 ---
@@ -291,9 +296,9 @@ Both Internship_Experience and Placement were standardized to integer binary val
 | Library | Version | Purpose |
 |---|---|---|
 | Python | 3.13 | Core language |
-| pandas | Latest | Data loading, manipulation, export |
-| numpy | Latest | Numerical operations, NaN handling |
-| scikit-learn | Latest | IterativeImputer (MICE), LabelEncoder |
+| pandas | Latest | Data loading, manipulation, and export |
+| numpy | Latest | Numerical operations and NaN handling |
+| scikit-learn | Latest | IterativeImputer (MICE), LabelEncoder, model training |
 | matplotlib | Latest | Distribution visualization |
 | seaborn | Latest | Statistical plotting |
 
@@ -309,15 +314,19 @@ pip install pandas numpy scikit-learn matplotlib seaborn
 
 ### Steps
 
-1. Place `Raw_College_student_placement_dataset.csv` in the same directory as the notebook.
-2. Open `data.ipynb` in Jupyter Notebook or JupyterLab.
-3. Run all cells sequentially from top to bottom.
-4. The cleaned output file `cleaned_placement_data.csv` will be generated in the working directory.
+1. Clone the repository and navigate to the project directory.
+2. Ensure `Raw_College_student_placement_dataset.csv` is present in the root directory.
+3. Run the notebooks in the following order:
+   - `data_modified.ipynb` — Data cleaning and preprocessing
+   - `eda.ipynb` — Exploratory Data Analysis
+   - `placement_model.ipynb` — Model training and evaluation
+4. The cleaned output `cleaned_placement_data.csv` and scaled output `scaled_placement_data.csv` will be generated in the working directory.
 
 ### Verify Output
 
 ```python
 import pandas as pd
+
 df = pd.read_csv('cleaned_placement_data.csv')
 print(df.shape)
 print(df.isnull().sum())
@@ -328,21 +337,21 @@ print(df.head())
 
 ## Results and Output
 
-Upon successful execution of the full notebook pipeline, the following is produced:
+Upon successful execution of the full pipeline, the following is produced:
 
 - A fully cleaned and imputed DataFrame with zero null values.
 - All features in numeric format, ready for direct use in classification models.
 - Branch labels standardized to five canonical engineering disciplines.
-- Binary columns (Placement, Internship_Experience) encoded as integer 0/1.
-- Exported CSV file: `cleaned_placement_data.csv`
+- Binary columns (`Placement`, `Internship_Experience`) encoded as integer 0/1.
+- A feature-scaled dataset (`scaled_placement_data.csv`) for use with distance-sensitive models.
+- Exported CSV: `cleaned_placement_data.csv`
 
 ### Recommended Next Steps
 
-- Perform Exploratory Data Analysis (EDA) on the cleaned dataset.
 - Analyze placement rates by branch using groupby aggregations.
-- Train classification models: Logistic Regression, Random Forest, XGBoost.
-- Evaluate using metrics: Accuracy, Precision, Recall, F1-Score, ROC-AUC.
-- Perform feature importance analysis to identify top placement predictors.
+- Train and compare classification models: Logistic Regression, Random Forest, XGBoost.
+- Evaluate models using: Accuracy, Precision, Recall, F1-Score, ROC-AUC.
+- Conduct feature importance analysis to identify the top predictors of placement.
 
 ---
 
@@ -356,15 +365,15 @@ Upon successful execution of the full notebook pipeline, the following is produc
 | Clipped IQ to [50, 200] | Standard psychometric IQ range; values outside are data errors |
 | Clipped scores to [0, 10] | All academic scores in this dataset are on a 10-point scale |
 | Keyword-based branch cleaning | Handles abbreviations, typos, and junk uniformly without manual enumeration |
-| random_state=42 | Ensures reproducibility across all team members and evaluation runs |
+| random_state=42 | Ensures reproducibility across all runs |
 
 ---
 
 ## Limitations
 
-- Columns with 50-60% missing data (IQ, Academic_Performance, etc.) are largely imputed. While MICE is statistically sound, imputed values at this scale should be interpreted with caution.
+- Columns with 50–60% missing data (IQ, Academic_Performance, etc.) are largely imputed. While MICE is statistically sound, imputed values at this scale should be interpreted with caution.
 - The branch cleaning function uses keyword matching. Rare or highly corrupted branch names that do not contain recognizable keywords will be assigned NaN and subsequently imputed.
-- The binary encoding of Internship_Experience and Placement using string-start matching may misclassify edge cases where junk strings coincidentally begin with "y" or "n".
+- The binary encoding of `Internship_Experience` and `Placement` using string-start matching may misclassify edge cases where junk strings coincidentally begin with "y" or "n".
 - This pipeline assumes the raw data schema remains consistent. A different version of the source CSV may require adjustments to the cleaning functions.
 
 ---
@@ -372,5 +381,6 @@ Upon successful execution of the full notebook pipeline, the following is produc
 ## Authors
 
 Prepared as part of an academic data science project on student placement prediction.
-Dataset: Raw College Student Placement Dataset
-Notebook: data.ipynb
+
+- Dataset: Raw College Student Placement Dataset
+- Notebooks: `data_modified.ipynb`, `eda.ipynb`, `placement_model.ipynb`
